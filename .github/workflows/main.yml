@@ -37,9 +37,17 @@ jobs:
 
       - name: Package natives
         run: |
-          cd ghidra-12.2/Ghidra/Features/Decompiler/os
-          tar -czf $GITHUB_WORKSPACE/ghidra_12.2_linux_arm_64_natives.tar.gz linux_arm_64
-
+          cd ghidra-12.2
+          NATIVES_DIR="Ghidra/Features/Decompiler/build/os/linux_arm_64"
+          if [ ! -d "$NATIVES_DIR" ]; then
+            echo "❌ 目录不存在: $NATIVES_DIR"
+            echo "=== 搜索 decompile 实际位置 ==="
+            find . -name "decompile" -type f
+            exit 1
+          fi
+          echo "✅ 找到产物目录: $NATIVES_DIR"
+          ls -la "$NATIVES_DIR"
+          tar -czf $GITHUB_WORKSPACE/ghidra_12.2_linux_arm_64_natives.tar.gz -C "$NATIVES_DIR" .
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
