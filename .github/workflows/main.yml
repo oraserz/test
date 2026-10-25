@@ -1,0 +1,47 @@
+name: Build Ghidra ARM64 Natives
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm   # 关键：原生 ARM64 运行器
+    steps:
+      - name: Checkout Ghidra 12.2
+        uses: actions/checkout@v4
+        with:
+          repository: NationalSecurityAgency/ghidra
+          ref: Ghidra_12.2_build
+          path: ghidra-12.2
+          fetch-depth: 1
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq make gcc g++ python3
+
+      - name: Prepare flatRepo & fetch dependencies
+        run: |
+          cd ghidra-12.2
+          mkdir -p flatRepo
+          ./gradlew -I gradle/support/fetchDependencies.gradle --no-daemon
+
+      - name: Build native components for linux_arm_64
+        run: |
+          cd ghidra-12.2
+          ./gradlew buildNatives_linux_arm_64 --no-daemon
+
+      - name: Package natives
+        run: |
+          cd ghidra-12.2/Ghidra/Features/Decompiler/os
+          tar -czf $GITHUB_WORKSPACE/ghidra_12.2_linux_arm_64_natives.tar.gz linux_arm_64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghidra-arm64-natives
+          path: ghidra_12.2_linux_arm_64_natives.tar.gz
